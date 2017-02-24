@@ -25,6 +25,7 @@ import au.com.bluedot.point.ApplicationNotificationListener;
 import au.com.bluedot.point.ServiceStatusListener;
 import au.com.bluedot.point.net.engine.BDError;
 import au.com.bluedot.point.net.engine.BeaconInfo;
+import au.com.bluedot.point.net.engine.LocationInfo;
 import au.com.bluedot.point.net.engine.ServiceManager;
 import au.com.bluedot.point.net.engine.ZoneInfo;
 
@@ -147,7 +148,7 @@ public class MainApplication extends Application implements ServiceStatusListene
 
     //=============================== [ etPush and Bluedot integration ] ===============================
     @Override
-    public void onCheckIntoFence(Fence fence, ZoneInfo zoneInfo, Location location, Map<String, String> customData, boolean isCheckOut) {
+    public void onCheckIntoFence(Fence fence, ZoneInfo zoneInfo, LocationInfo location, Map<String, String> customData, boolean isCheckOut) {
         ZoneEventReporter.getInstance().reportCheckIn(salesforceSubscriberKey, zoneInfo.getZoneId(), apiKey, packageName, emailId);
     }
 
@@ -158,7 +159,7 @@ public class MainApplication extends Application implements ServiceStatusListene
     }
 
     @Override
-    public void onCheckIntoBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, Location location, Proximity proximity, Map<String, String> customData, boolean isCheckOut) {
+    public void onCheckIntoBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, LocationInfo location, Proximity proximity, Map<String, String> customData, boolean isCheckOut) {
         ZoneEventReporter.getInstance().reportCheckIn(salesforceSubscriberKey, zoneInfo.getZoneId(), apiKey, packageName, emailId);
     }
 
