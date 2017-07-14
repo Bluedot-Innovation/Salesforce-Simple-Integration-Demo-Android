@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 
@@ -25,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         textViewLog = (TextView) findViewById(R.id.textViewLog);
         textViewLog.setMovementMethod(new ScrollingMovementMethod());
     }
@@ -52,6 +54,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+
+    }
+
+
+    @Override
+    protected void onStop() {
+        super.onStop();
         unregisterReceiver(logReceiver);
     }
 }

@@ -2,11 +2,12 @@ package bluedotinnovation.com.bdsalesforceintegrationsample;
 
 import android.Manifest;
 import android.app.Application;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.support.v4.app.ActivityCompat;
 
+import com.bluedot.BDSalesforceIntegrationWrapper.BDZoneEvent;
 import com.bluedot.BDSalesforceIntegrationWrapper.ZoneEventReportListener;
 import com.bluedot.BDSalesforceIntegrationWrapper.ZoneEventReporter;
 import com.exacttarget.etpushsdk.ETException;
@@ -14,9 +15,14 @@ import com.exacttarget.etpushsdk.ETPush;
 import com.exacttarget.etpushsdk.ETPushConfig;
 import com.exacttarget.etpushsdk.ETPushConfigureSdkListener;
 import com.exacttarget.etpushsdk.ETRequestStatus;
+import com.exacttarget.etpushsdk.event.PushReceivedEvent;
+import com.exacttarget.etpushsdk.util.EventBus;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import au.com.bluedot.application.model.Proximity;
@@ -36,6 +42,9 @@ import au.com.bluedot.point.net.engine.ZoneInfo;
  */
 public class MainApplication extends Application implements ServiceStatusListener, ApplicationNotificationListener, ZoneEventReportListener, ETPushConfigureSdkListener {
 
+    public static final String LOCATION_ACCESS = "Location Access";
+    public static final String IS_WATCHING = "This app is utilizing the location to trigger alerts " +
+            "in both background and foreground modes when you visit your favourite locations";
     //=============================== [ Bluedot SDK ] ===============================
     private ServiceManager mServiceManager;
     private String packageName = "";   //Package name for the App
@@ -57,8 +66,15 @@ public class MainApplication extends Application implements ServiceStatusListene
 
         int checkPermission = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION);
 
+
         if(checkPermission == PackageManager.PERMISSION_GRANTED) {
             mServiceManager = ServiceManager.getInstance(this);
+
+            // Android O handling - Set the foreground Service Notification which will fire only if running on Android O and above
+            Intent actionIntent = new Intent(getApplicationContext(), MainActivity.class);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT );
+            mServiceManager.setForegroundServiceNotification(R.mipmap.ic_launcher, LOCATION_ACCESS, IS_WATCHING, pendingIntent);
+
             if(!mServiceManager.isBlueDotPointServiceRunning()) {
                 mServiceManager.sendAuthenticationRequest(packageName,apiKey,emailId,this,restartMode);
             }
@@ -91,7 +107,7 @@ public class MainApplication extends Application implements ServiceStatusListene
 
     @Override
     public void onBlueDotPointServiceError(BDError bdError) {
-
+        logInfo("BD SDK error: " + bdError.getReason());
     }
 
     @Override
@@ -130,48 +146,140 @@ public class MainApplication extends Application implements ServiceStatusListene
         // check if there is a subscriberKey assigned
         try {
             salesforceSubscriberKey = etPush.getSubscriberKey();
-            if (salesforceSubscriberKey == null || salesforceSubscriberKey.length() == 0){
+            if (salesforceSubscriberKey == null || salesforceSubscriberKey.length() == 0) {
                 salesforceSubscriberKey = UUID.randomUUID().toString();
                 etPush.setSubscriberKey(salesforceSubscriberKey);
             }
         } catch (ETException e) {
             e.printStackTrace();
         }
+        EventBus.getInstance().register(this);
+    }
+
+    @SuppressWarnings("unused, unchecked")
+    public void onEvent(final PushReceivedEvent event) {
+        logInfo("Push Received: " + (new Date().toString()));
+
     }
 
     @Override
     public void onETPushConfigurationFailed(ETException e) {
-
+        logInfo("etPush SDK error: " + e.getMessage());
     }
     //=============================== [ etPush SDK  end]=================================
 
-
     //=============================== [ etPush and Bluedot integration ] ===============================
     @Override
-    public void onCheckIntoFence(Fence fence, ZoneInfo zoneInfo, LocationInfo location, Map<String, String> customData, boolean isCheckOut) {
-        ZoneEventReporter.getInstance().reportCheckIn(salesforceSubscriberKey, zoneInfo.getZoneId(), apiKey, packageName, emailId);
+    public void onCheckIntoFence(Fence fence, ZoneInfo zoneInfo, LocationInfo locationInfo, Map<String, String> map, boolean isCheckOut) {
+        logInfo("Fence CheckIn");
+        try {
+            BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
+                    .setSubscriberKey(salesforceSubscriberKey)
+                    .setApiKey(apiKey)
+                    .setPackageName(packageName)
+                    .setUserName(emailId)
+                    .setZoneId(zoneInfo.getZoneId())
+                    .setZoneName(zoneInfo.getZoneName())
+                    .setFenceId(fence.getID())
+                    .setFenceName(fence.getName())
+                    .setCheckInTime(get8601formattedDate(locationInfo.getTimeStamp()))
+                    .setCheckInLatitude(locationInfo.getLatitude())
+                    .setCheckInLongitude(locationInfo.getLongitude())
+                    .setCheckInBearing(locationInfo.getBearing())
+                    .setCheckInSpeed(locationInfo.getSpeed())
+                    .setCustomData(map)
+                    .build();
+            ZoneEventReporter.getInstance().reportCheckIn(bdZoneEvent);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String get8601formattedDate(long timestamp) {
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.S'Z'");
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+        if ( timestamp == 0) {
+            return df.format(new Date());
+        }
+        return df.format(new Date(timestamp));
     }
 
     @Override
     public void onCheckedOutFromFence(Fence fence, ZoneInfo zoneInfo, int dwellTime, Map<String, String> customData) {
-
-        ZoneEventReporter.getInstance().reportCheckOut(salesforceSubscriberKey, zoneInfo.getZoneId(), apiKey, packageName, emailId);
+        logInfo("Fence CheckOut");
+        try {
+            BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
+                    .setSubscriberKey(salesforceSubscriberKey)
+                    .setApiKey(apiKey)
+                    .setPackageName(packageName)
+                    .setUserName(emailId)
+                    .setZoneId(zoneInfo.getZoneId())
+                    .setZoneName(zoneInfo.getZoneName())
+                    .setFenceId(fence.getID())
+                    .setFenceName(fence.getName())
+                    .setCheckOutTime(get8601formattedDate(0))
+                    .setDwellTime(dwellTime)
+                    .setCustomData(customData)
+                    .build();
+            ZoneEventReporter.getInstance().reportCheckOut(bdZoneEvent);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
-    public void onCheckIntoBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, LocationInfo location, Proximity proximity, Map<String, String> customData, boolean isCheckOut) {
-        ZoneEventReporter.getInstance().reportCheckIn(salesforceSubscriberKey, zoneInfo.getZoneId(), apiKey, packageName, emailId);
+    public void onCheckIntoBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, LocationInfo locationInfo, Proximity proximity, Map<String, String> map, boolean isCheckout) {
+        logInfo("Beacon CheckIn");
+        try {
+            BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
+                    .setSubscriberKey(salesforceSubscriberKey)
+                    .setApiKey(apiKey)
+                    .setPackageName(packageName)
+                    .setUserName(emailId)
+                    .setZoneId(zoneInfo.getZoneId())
+                    .setZoneName(zoneInfo.getZoneName())
+                    .setBeaconId(beaconInfo.getId())
+                    .setBeaconName(beaconInfo.getName())
+                    .setCheckInTime(get8601formattedDate(locationInfo.getTimeStamp()))
+                    .setCheckInLatitude(locationInfo.getLatitude())
+                    .setCheckInLongitude(locationInfo.getLongitude())
+                    .setCheckInBearing(locationInfo.getBearing())
+                    .setCheckInSpeed(locationInfo.getSpeed())
+                    .setCustomData(map)
+                    .build();
+            ZoneEventReporter.getInstance().reportCheckIn(bdZoneEvent);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
     }
+
 
     @Override
     public void onCheckedOutFromBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, int dwellTime, Map<String, String> customData) {
-
-        ZoneEventReporter.getInstance().reportCheckOut(salesforceSubscriberKey, zoneInfo.getZoneId(), apiKey, packageName, emailId);
+        logInfo("Beacon CheckOut");
+        try {
+            BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
+                    .setSubscriberKey(salesforceSubscriberKey)
+                    .setApiKey(apiKey)
+                    .setPackageName(packageName)
+                    .setUserName(emailId)
+                    .setZoneId(zoneInfo.getZoneId())
+                    .setZoneName(zoneInfo.getZoneName())
+                    .setBeaconId(beaconInfo.getId())
+                    .setBeaconName(beaconInfo.getName())
+                    .setCheckOutTime(get8601formattedDate(0))
+                    .setDwellTime(dwellTime)
+                    .setCustomData(customData)
+                    .build();
+            ZoneEventReporter.getInstance().reportCheckOut(bdZoneEvent);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onReportSuccess() {
-        logInfo("Zone Event Report Success");
+        logInfo("Zone Event Report Success: " + (new Date().toString()));
     }
 
     @Override
@@ -180,7 +288,7 @@ public class MainApplication extends Application implements ServiceStatusListene
     }
     //=============================== [ etPush and Bluedot integration end ] ===============================
 
-    private void logInfo(String logInfo){
+    private void logInfo(String logInfo) {
         Intent intent = new Intent();
         intent.setAction(MainActivity.TEXT_LOG_BROADCAST);
         intent.putExtra("logInfo", logInfo);
