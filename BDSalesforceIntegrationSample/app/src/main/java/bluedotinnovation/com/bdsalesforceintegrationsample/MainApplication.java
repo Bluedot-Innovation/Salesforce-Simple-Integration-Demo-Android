@@ -26,11 +26,11 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import au.com.bluedot.application.model.Proximity;
-import au.com.bluedot.application.model.geo.Fence;
 import au.com.bluedot.point.ApplicationNotificationListener;
 import au.com.bluedot.point.ServiceStatusListener;
 import au.com.bluedot.point.net.engine.BDError;
 import au.com.bluedot.point.net.engine.BeaconInfo;
+import au.com.bluedot.point.net.engine.FenceInfo;
 import au.com.bluedot.point.net.engine.LocationInfo;
 import au.com.bluedot.point.net.engine.ServiceManager;
 import au.com.bluedot.point.net.engine.ZoneInfo;
@@ -73,7 +73,7 @@ public class MainApplication extends Application implements ServiceStatusListene
             // Android O handling - Set the foreground Service Notification which will fire only if running on Android O and above
             Intent actionIntent = new Intent(getApplicationContext(), MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT );
-            mServiceManager.setForegroundServiceNotification(R.mipmap.ic_launcher, LOCATION_ACCESS, IS_WATCHING, pendingIntent);
+            mServiceManager.setForegroundServiceNotification(R.mipmap.ic_launcher, LOCATION_ACCESS, IS_WATCHING, pendingIntent, false);
 
             if(!mServiceManager.isBlueDotPointServiceRunning()) {
                 mServiceManager.sendAuthenticationRequest(packageName,apiKey,emailId,this,restartMode);
@@ -170,7 +170,7 @@ public class MainApplication extends Application implements ServiceStatusListene
 
     //=============================== [ etPush and Bluedot integration ] ===============================
     @Override
-    public void onCheckIntoFence(Fence fence, ZoneInfo zoneInfo, LocationInfo locationInfo, Map<String, String> map, boolean isCheckOut) {
+    public void onCheckIntoFence(FenceInfo fenceInfo, ZoneInfo zoneInfo, LocationInfo locationInfo, Map<String, String> map, boolean isCheckOut) {
         logInfo("Fence CheckIn");
         try {
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
@@ -180,8 +180,8 @@ public class MainApplication extends Application implements ServiceStatusListene
                     .setUserName(emailId)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
-                    .setFenceId(fence.getID())
-                    .setFenceName(fence.getName())
+                    .setFenceId(fenceInfo.getId())
+                    .setFenceName(fenceInfo.getName())
                     .setCheckInTime(get8601formattedDate(locationInfo.getTimeStamp()))
                     .setCheckInLatitude(locationInfo.getLatitude())
                     .setCheckInLongitude(locationInfo.getLongitude())
@@ -205,7 +205,7 @@ public class MainApplication extends Application implements ServiceStatusListene
     }
 
     @Override
-    public void onCheckedOutFromFence(Fence fence, ZoneInfo zoneInfo, int dwellTime, Map<String, String> customData) {
+    public void onCheckedOutFromFence(FenceInfo fenceInfo, ZoneInfo zoneInfo, int dwellTime, Map<String, String> customData) {
         logInfo("Fence CheckOut");
         try {
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
@@ -215,8 +215,8 @@ public class MainApplication extends Application implements ServiceStatusListene
                     .setUserName(emailId)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
-                    .setFenceId(fence.getID())
-                    .setFenceName(fence.getName())
+                    .setFenceId(fenceInfo.getId())
+                    .setFenceName(fenceInfo.getName())
                     .setCheckOutTime(get8601formattedDate(0))
                     .setDwellTime(dwellTime)
                     .setCustomData(customData)
