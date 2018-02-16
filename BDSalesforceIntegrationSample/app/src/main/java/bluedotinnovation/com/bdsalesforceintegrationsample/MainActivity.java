@@ -13,7 +13,7 @@ import android.widget.TextView;
 
 /*
  * @author Bluedot Innovation
- * Copyright (c) 2016 Bluedot Innovation. All rights reserved.
+ * Copyright (c) 2018 Bluedot Innovation. All rights reserved.
  * MainApplication demonstrates the implementation Bluedot Point SDK and related callbacks.
  */
 public class MainActivity extends AppCompatActivity {

@@ -2,18 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="bluedotinnovation.com.bdsalesforceintegrationsample" >
 
-    <!--   [ Bluedot SDK ]   -->
-    <!-- General Point SDK functionality -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <!-- Required for Beacons integration -->
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <!--   [ Bluedot SDK end ]   -->
-
     <application
         android:name=".MainApplication"
         android:allowBackup="true"
@@ -29,22 +17,6 @@
         </activity>
 
         <activity android:name=".RequestPermissionActivity" />
-
-        <!--   [ Bluedot SDK integration ]   -->
-        <!-- General Point SDK functionality -->
-        <service
-            android:name="au.com.bluedot.point.net.engine.BlueDotPointService"
-            android:exported="false" >
-        </service>
-        <service android:name="au.com.bluedot.point.net.engine.DataJobScheduler"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE" />
-        <!-- Required for Beacons integration - Optional -->
-        <service
-            android:name="au.com.bluedot.point.beacon.BlueDotBLEService"
-            android:exported="false" >
-        </service>
-        <!--   [ Bluedot SDK end ]   -->
 
     </application>
 

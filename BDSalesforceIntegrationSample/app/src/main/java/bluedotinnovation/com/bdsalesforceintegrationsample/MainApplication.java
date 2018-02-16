@@ -37,7 +37,7 @@ import au.com.bluedot.point.net.engine.ZoneInfo;
 
 /*
  * @author Bluedot Innovation
- * Copyright (c) 2016 Bluedot Innovation. All rights reserved.
+ * Copyright (c) 2018 Bluedot Innovation. All rights reserved.
  * MainApplication demonstrates the implementation Bluedot Point SDK and related callbacks.
  */
 public class MainApplication extends Application implements ServiceStatusListener, ApplicationNotificationListener, ZoneEventReportListener, ETPushConfigureSdkListener {
@@ -47,9 +47,9 @@ public class MainApplication extends Application implements ServiceStatusListene
             "in both background and foreground modes when you visit your favourite locations";
     //=============================== [ Bluedot SDK ] ===============================
     private ServiceManager mServiceManager;
-    private String packageName = "";   //Package name for the App
-    private String apiKey = ""; //API key for the App
-    private String emailId = ""; //Registration email Id
+    private String packageName = "";   //Package name for the App 
+    private String apiKey = ""; //API key for the App 
+    private String emailId = ""; //Registration email Id 
     private boolean restartMode = true;
 
 
