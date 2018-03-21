@@ -2,10 +2,18 @@ package bluedotinnovation.com.bdsalesforceintegrationsample;
 
 import android.Manifest;
 import android.app.Application;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 
 import com.bluedot.BDSalesforceIntegrationWrapper.BDZoneEvent;
 import com.bluedot.BDSalesforceIntegrationWrapper.ZoneEventReportListener;
@@ -35,6 +43,8 @@ import au.com.bluedot.point.net.engine.LocationInfo;
 import au.com.bluedot.point.net.engine.ServiceManager;
 import au.com.bluedot.point.net.engine.ZoneInfo;
 
+import static android.app.Notification.PRIORITY_MAX;
+
 /*
  * @author Bluedot Innovation
  * Copyright (c) 2018 Bluedot Innovation. All rights reserved.
@@ -42,8 +52,8 @@ import au.com.bluedot.point.net.engine.ZoneInfo;
  */
 public class MainApplication extends Application implements ServiceStatusListener, ApplicationNotificationListener, ZoneEventReportListener, ETPushConfigureSdkListener {
 
-    public static final String LOCATION_ACCESS = "Location Access";
-    public static final String IS_WATCHING = "This app is utilizing the location to trigger alerts " +
+    public static final String NOTIFICATION_TITLE = "Location Access";
+    public static final String NOTIFICATION_CONTENT = "This app is utilizing the location to trigger alerts " +
             "in both background and foreground modes when you visit your favourite locations";
     //=============================== [ Bluedot SDK ] ===============================
     private ServiceManager mServiceManager;
@@ -70,12 +80,10 @@ public class MainApplication extends Application implements ServiceStatusListene
         if(checkPermission == PackageManager.PERMISSION_GRANTED) {
             mServiceManager = ServiceManager.getInstance(this);
 
-            // Android O handling - Set the foreground Service Notification which will fire only if running on Android O and above
-            Intent actionIntent = new Intent(getApplicationContext(), MainActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT );
-            mServiceManager.setForegroundServiceNotification(R.mipmap.ic_launcher, LOCATION_ACCESS, IS_WATCHING, pendingIntent, false);
-
             if(!mServiceManager.isBlueDotPointServiceRunning()) {
+                // Setting Notification for foreground service, required for Android Oreo and above.
+                // Setting targetAllAPIs to TRUE will display foreground notification for Android versions lower than Oreo
+                mServiceManager.setForegroundServiceNotification(createNotification(), false);
                 mServiceManager.sendAuthenticationRequest(packageName,apiKey,emailId,this,restartMode);
             }
         }
@@ -293,5 +301,45 @@ public class MainApplication extends Application implements ServiceStatusListene
         intent.setAction(MainActivity.TEXT_LOG_BROADCAST);
         intent.putExtra("logInfo", logInfo);
         sendBroadcast(intent);
+    }
+
+
+    /**
+     * Creates notification channel and notification, required for foreground service notification.
+     * @return notification
+     */
+    private Notification createNotification() {
+
+        String channelId;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channelId = "Bluedot";
+            String channelName = "Bluedot Service";
+            NotificationChannel notificationChannel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW);
+            notificationChannel.enableLights(false);
+            notificationChannel.setLightColor(Color.RED);
+            notificationChannel.enableVibration(false);
+            NotificationManager notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.createNotificationChannel(notificationChannel);
+
+            Notification.Builder notification = new Notification.Builder(getApplicationContext(), channelId)
+                    .setContentTitle(NOTIFICATION_TITLE)
+                    .setContentText(NOTIFICATION_CONTENT)
+                    .setOngoing(true)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setSmallIcon(R.mipmap.ic_launcher);
+
+            return notification.build();
+        } else {
+
+            NotificationCompat.Builder notification = new NotificationCompat.Builder(getApplicationContext())
+                    .setContentTitle(NOTIFICATION_TITLE)
+                    .setContentText(NOTIFICATION_CONTENT)
+                    .setOngoing(true)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setPriority(PRIORITY_MAX)
+                    .setSmallIcon(R.mipmap.ic_launcher);
+
+            return notification.build();
+        }
     }
 }
