@@ -12,7 +12,7 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -20,15 +20,15 @@ android {
 
 
 dependencies {
-    implementation 'com.android.support:appcompat-v7:27.0.2'
+    implementation 'com.android.support:appcompat-v7:27.1.1'
 
     // Bluedot SDK
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     // etPush SDK
     implementation 'com.exacttarget.etpushsdk:etsdk:4.9.4@aar'
-    implementation 'com.google.android.gms:play-services-location:11.8.0'
-    implementation 'com.google.android.gms:play-services-gcm:11.8.0'
-    implementation 'com.android.support:support-v4:27.0.2'
-    implementation 'com.github.Bluedot-Innovation:PointSDK-Android:1.11.2'
+    implementation 'com.google.android.gms:play-services-location:15.0.1'
+    implementation 'com.google.android.gms:play-services-gcm:15.0.1'
+    implementation 'com.android.support:support-v4:27.1.1'
+    implementation 'com.github.Bluedot-Innovation:PointSDK-Android:1.11.3'
 }
