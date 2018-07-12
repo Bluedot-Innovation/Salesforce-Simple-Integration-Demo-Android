@@ -81,7 +81,7 @@ public class MainApplication extends Application implements ServiceStatusListene
                 // Setting Notification for foreground service, required for Android Oreo and above.
                 // Setting targetAllAPIs to TRUE will display foreground notification for Android versions lower than Oreo
                 mServiceManager.setForegroundServiceNotification(createNotification(), true);
-                mServiceManager.sendAuthenticationRequest(apiKey,this,restartMode, "https://globalconfig.dev-bluedot.com/" + apiKey + ".json");
+                mServiceManager.sendAuthenticationRequest(apiKey,this,restartMode);
             }
         }
         else {
