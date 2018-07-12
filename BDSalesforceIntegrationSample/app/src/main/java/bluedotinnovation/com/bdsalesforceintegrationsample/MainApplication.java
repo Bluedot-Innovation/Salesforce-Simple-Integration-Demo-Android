@@ -5,13 +5,11 @@ import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
-import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 
@@ -57,9 +55,7 @@ public class MainApplication extends Application implements ServiceStatusListene
             "in both background and foreground modes when you visit your favourite locations";
     //=============================== [ Bluedot SDK ] ===============================
     private ServiceManager mServiceManager;
-    private String packageName = "";   //Package name for the App 
     private String apiKey = ""; //API key for the App 
-    private String emailId = ""; //Registration email Id 
     private boolean restartMode = true;
 
 
@@ -74,17 +70,18 @@ public class MainApplication extends Application implements ServiceStatusListene
 
     public void initPointSDK() {
 
-        int checkPermission = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION);
+        int checkPermissionFine = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+        int checkPermissionCoarse = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION);
 
 
-        if(checkPermission == PackageManager.PERMISSION_GRANTED) {
+        if(checkPermissionFine == PackageManager.PERMISSION_GRANTED && checkPermissionCoarse == PackageManager.PERMISSION_GRANTED) {
             mServiceManager = ServiceManager.getInstance(this);
 
             if(!mServiceManager.isBlueDotPointServiceRunning()) {
                 // Setting Notification for foreground service, required for Android Oreo and above.
                 // Setting targetAllAPIs to TRUE will display foreground notification for Android versions lower than Oreo
-                mServiceManager.setForegroundServiceNotification(createNotification(), false);
-                mServiceManager.sendAuthenticationRequest(packageName,apiKey,emailId,this,restartMode);
+                mServiceManager.setForegroundServiceNotification(createNotification(), true);
+                mServiceManager.sendAuthenticationRequest(apiKey,this,restartMode, "https://globalconfig.dev-bluedot.com/" + apiKey + ".json");
             }
         }
         else {
@@ -131,6 +128,7 @@ public class MainApplication extends Application implements ServiceStatusListene
     private String et_app_id="";
     private String et_access_token="";
     private String et_gcm_id="";
+
 
     private void initETSDK() {
         try {
@@ -184,8 +182,6 @@ public class MainApplication extends Application implements ServiceStatusListene
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
                     .setSubscriberKey(salesforceSubscriberKey)
                     .setApiKey(apiKey)
-                    .setPackageName(packageName)
-                    .setUserName(emailId)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
                     .setFenceId(fenceInfo.getId())
@@ -219,8 +215,6 @@ public class MainApplication extends Application implements ServiceStatusListene
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
                     .setSubscriberKey(salesforceSubscriberKey)
                     .setApiKey(apiKey)
-                    .setPackageName(packageName)
-                    .setUserName(emailId)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
                     .setFenceId(fenceInfo.getId())
@@ -242,8 +236,6 @@ public class MainApplication extends Application implements ServiceStatusListene
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
                     .setSubscriberKey(salesforceSubscriberKey)
                     .setApiKey(apiKey)
-                    .setPackageName(packageName)
-                    .setUserName(emailId)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
                     .setBeaconId(beaconInfo.getId())
@@ -269,8 +261,6 @@ public class MainApplication extends Application implements ServiceStatusListene
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
                     .setSubscriberKey(salesforceSubscriberKey)
                     .setApiKey(apiKey)
-                    .setPackageName(packageName)
-                    .setUserName(emailId)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
                     .setBeaconId(beaconInfo.getId())
@@ -312,8 +302,8 @@ public class MainApplication extends Application implements ServiceStatusListene
 
         String channelId;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            channelId = "Bluedot";
-            String channelName = "Bluedot Service";
+            channelId = "BluedotSampleChannelId";
+            String channelName = "BluedotSampleChannelName";
             NotificationChannel notificationChannel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW);
             notificationChannel.enableLights(false);
             notificationChannel.setLightColor(Color.RED);

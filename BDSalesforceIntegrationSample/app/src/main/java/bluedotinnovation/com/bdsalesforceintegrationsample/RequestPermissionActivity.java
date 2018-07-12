@@ -19,7 +19,7 @@ public class RequestPermissionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         //Request permission required for location
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_CODE);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION , Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_CODE);
     }
 
     @Override
