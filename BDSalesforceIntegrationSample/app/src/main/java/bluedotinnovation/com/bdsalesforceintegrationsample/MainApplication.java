@@ -10,19 +10,16 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 
 import com.bluedot.BDSalesforceIntegrationWrapper.BDZoneEvent;
 import com.bluedot.BDSalesforceIntegrationWrapper.ZoneEventReportListener;
 import com.bluedot.BDSalesforceIntegrationWrapper.ZoneEventReporter;
-import com.exacttarget.etpushsdk.ETException;
-import com.exacttarget.etpushsdk.ETPush;
-import com.exacttarget.etpushsdk.ETPushConfig;
-import com.exacttarget.etpushsdk.ETPushConfigureSdkListener;
-import com.exacttarget.etpushsdk.ETRequestStatus;
-import com.exacttarget.etpushsdk.event.PushReceivedEvent;
-import com.exacttarget.etpushsdk.util.EventBus;
+import com.salesforce.marketingcloud.InitializationStatus;
+import com.salesforce.marketingcloud.MarketingCloudConfig;
+import com.salesforce.marketingcloud.MarketingCloudSdk;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -46,17 +43,19 @@ import static android.app.Notification.PRIORITY_MAX;
 /*
  * @author Bluedot Innovation
  * Copyright (c) 2018 Bluedot Innovation. All rights reserved.
- * MainApplication demonstrates the implementation Bluedot Point SDK and related callbacks.
+ * MainApplication demonstrates the implementation Bluedot Point SDK and Marketing Cloud SDK.
  */
-public class MainApplication extends Application implements ServiceStatusListener, ApplicationNotificationListener, ZoneEventReportListener, ETPushConfigureSdkListener {
+public class MainApplication extends Application implements ServiceStatusListener, ApplicationNotificationListener, ZoneEventReportListener, MarketingCloudSdk.InitializationListener {
 
-    public static final String NOTIFICATION_TITLE = "Location Access";
-    public static final String NOTIFICATION_CONTENT = "This app is utilizing the location to trigger alerts " +
+    public static final String NOTIFICATION_TITLE = "Location Based Notifications";
+    public static final String NOTIFICATION_CONTENT = "--PLEASE CHANGE-- This app is utilizing the location to trigger alerts " +
             "in both background and foreground modes when you visit your favourite locations";
     //=============================== [ Bluedot SDK ] ===============================
     private ServiceManager mServiceManager;
     private String apiKey = ""; //API key for the App 
     private boolean restartMode = true;
+    final String CHANNEL_ID = "BluedotSampleChannelId";     //Please replace with yout Channel Id
+    final String CHANNEL_NAME = "BluedotSampleChannelName"; //Please replace with your Channel Name
 
 
     @Override
@@ -64,7 +63,7 @@ public class MainApplication extends Application implements ServiceStatusListene
         super.onCreate();
 
         //init SDKs
-        initETSDK();
+        initCloudMobilePushSDK();
         initPointSDK();
     }
 
@@ -74,17 +73,18 @@ public class MainApplication extends Application implements ServiceStatusListene
         int checkPermissionCoarse = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION);
 
 
-        if(checkPermissionFine == PackageManager.PERMISSION_GRANTED && checkPermissionCoarse == PackageManager.PERMISSION_GRANTED) {
+        if (checkPermissionFine == PackageManager.PERMISSION_GRANTED && checkPermissionCoarse == PackageManager.PERMISSION_GRANTED) {
             mServiceManager = ServiceManager.getInstance(this);
 
-            if(!mServiceManager.isBlueDotPointServiceRunning()) {
+            if (!mServiceManager.isBlueDotPointServiceRunning()) {
                 // Setting Notification for foreground service, required for Android Oreo and above.
                 // Setting targetAllAPIs to TRUE will display foreground notification for Android versions lower than Oreo
-                mServiceManager.setForegroundServiceNotification(createNotification(), true);
-                mServiceManager.sendAuthenticationRequest(apiKey,this,restartMode);
+                mServiceManager.setForegroundServiceNotification(createNotification(), false);
+                mServiceManager.sendAuthenticationRequest(apiKey, this, restartMode);
+
+
             }
-        }
-        else {
+        } else {
             requestPermissions();
         }
 
@@ -122,65 +122,70 @@ public class MainApplication extends Application implements ServiceStatusListene
     //=============================== [ Bluedot SDK end ] ===============================
 
 
-    //=============================== [ etPush SDK ]=================================
-    private ETPush etPush;
-    private String salesforceSubscriberKey;
-    private String et_app_id="";
-    private String et_access_token="";
-    private String et_gcm_id="";
+    //=============================== [ Marketing Cloud SDK ]=================================
+    private String salesforceContactKey;
+    private String app_id="";   //Enter your App Id
+    private String access_token=""; //Enter Access Token
+    private String gcm_id="";   //Enter GCM Id
 
 
-    private void initETSDK() {
-        try {
-            ETPush.configureSdk(new ETPushConfig.Builder(this)
-                    .setEtAppId(et_app_id)
-                    .setAccessToken(et_access_token)
-                    .setGcmSenderId(et_gcm_id)
-                    .build()
-                    , this);
-        } catch (ETException e) {
-            e.printStackTrace();
+    private void initCloudMobilePushSDK() {
+        MarketingCloudSdk.init(this, MarketingCloudConfig.builder()
+                .setApplicationId(app_id)
+                .setAccessToken(access_token)
+                .setGcmSenderId(gcm_id)
+                .setNotificationSmallIconResId(R.mipmap.ic_launcher)
+                .setNotificationChannelName(CHANNEL_NAME) // Required if Android target API is >= 26
+                //Enable any other feature desired.
+                .build(), this);
 
-        }
     }
 
-    @Override
-    public void onETPushConfigurationSuccess(ETPush etpush, ETRequestStatus etRequestStatus) {
-        logInfo("etPush SDK started");
-        this.etPush = etpush;
 
-        // check if there is a subscriberKey assigned
-        try {
-            salesforceSubscriberKey = etPush.getSubscriberKey();
-            if (salesforceSubscriberKey == null || salesforceSubscriberKey.length() == 0) {
-                salesforceSubscriberKey = UUID.randomUUID().toString();
-                etPush.setSubscriberKey(salesforceSubscriberKey);
+    @Override
+    public void complete(@NonNull InitializationStatus status) {
+
+
+        if (status.status() == InitializationStatus.Status.SUCCESS) {
+            logInfo("Marketing Cloud SDK started");
+            salesforceContactKey = MarketingCloudSdk.getInstance().getRegistrationManager().getContactKey();
+            if (salesforceContactKey == null || salesforceContactKey.length() == 0) {
+                salesforceContactKey = UUID.randomUUID().toString();
+                MarketingCloudSdk.getInstance().getRegistrationManager().edit().setContactKey(salesforceContactKey).commit();
             }
-        } catch (ETException e) {
-            e.printStackTrace();
+
+        } else if (status.status() == InitializationStatus.Status.COMPLETED_WITH_DEGRADED_FUNCTIONALITY) {
+            // While the SDK is usable, something happened during init that you should address.
+            // This could include:
+
+            //Google play services encountered a recoverable error
+
+                /* The user had previously provided the location permission, but it has now been revoked.
+                 Geofence and Beacon messages have been disabled.  You will need to request the location
+                 permission again and re-enable Geofence and/or Beacon messaging again. */
+
+              /* Google Play Services attempted to update your SSL providers but failed.  It should be assumed that
+                  all network communications will fallback to TLS1.0.
+              */
+        } else if (status.status() == InitializationStatus.Status.FAILED) {
+            logInfo("Marketing Cloud SDK error: " + status.toString());
+        } else {
+            logInfo("Marketing Cloud SDK : Unknown error");
         }
-        EventBus.getInstance().register(this);
-    }
 
-    @SuppressWarnings("unused, unchecked")
-    public void onEvent(final PushReceivedEvent event) {
-        logInfo("Push Received: " + (new Date().toString()));
 
     }
 
-    @Override
-    public void onETPushConfigurationFailed(ETException e) {
-        logInfo("etPush SDK error: " + e.getMessage());
-    }
-    //=============================== [ etPush SDK  end]=================================
 
-    //=============================== [ etPush and Bluedot integration ] ===============================
+    //=============================== [ Marketing Cloud SDK end]=================================
+
+    //=============================== [ Marketing Cloud SDK and Bluedot integration ] ===============================
     @Override
     public void onCheckIntoFence(FenceInfo fenceInfo, ZoneInfo zoneInfo, LocationInfo locationInfo, Map<String, String> map, boolean isCheckOut) {
         logInfo("Fence CheckIn");
         try {
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
-                    .setSubscriberKey(salesforceSubscriberKey)
+                    .setSubscriberKey(salesforceContactKey)
                     .setApiKey(apiKey)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
@@ -202,7 +207,7 @@ public class MainApplication extends Application implements ServiceStatusListene
     private String get8601formattedDate(long timestamp) {
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.S'Z'");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
-        if ( timestamp == 0) {
+        if (timestamp == 0) {
             return df.format(new Date());
         }
         return df.format(new Date(timestamp));
@@ -213,7 +218,7 @@ public class MainApplication extends Application implements ServiceStatusListene
         logInfo("Fence CheckOut");
         try {
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
-                    .setSubscriberKey(salesforceSubscriberKey)
+                    .setSubscriberKey(salesforceContactKey)
                     .setApiKey(apiKey)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
@@ -234,7 +239,7 @@ public class MainApplication extends Application implements ServiceStatusListene
         logInfo("Beacon CheckIn");
         try {
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
-                    .setSubscriberKey(salesforceSubscriberKey)
+                    .setSubscriberKey(salesforceContactKey)
                     .setApiKey(apiKey)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
@@ -259,7 +264,7 @@ public class MainApplication extends Application implements ServiceStatusListene
         logInfo("Beacon CheckOut");
         try {
             BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
-                    .setSubscriberKey(salesforceSubscriberKey)
+                    .setSubscriberKey(salesforceContactKey)
                     .setApiKey(apiKey)
                     .setZoneId(zoneInfo.getZoneId())
                     .setZoneName(zoneInfo.getZoneName())
@@ -284,7 +289,7 @@ public class MainApplication extends Application implements ServiceStatusListene
     public void onReportError(Error error) {
         logInfo("Zone Event Report Fail " + error.getMessage());
     }
-    //=============================== [ etPush and Bluedot integration end ] ===============================
+    //=============================== [ Marketing Cloud SDK and Bluedot integration end ] ===============================
 
     private void logInfo(String logInfo) {
         Intent intent = new Intent();
@@ -296,24 +301,24 @@ public class MainApplication extends Application implements ServiceStatusListene
 
     /**
      * Creates notification channel and notification, required for foreground service notification.
+     *
      * @return notification
      */
     private Notification createNotification() {
 
-        String channelId;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            channelId = "BluedotSampleChannelId";
-            String channelName = "BluedotSampleChannelName";
-            NotificationChannel notificationChannel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW);
+
+            NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
             notificationChannel.enableLights(false);
             notificationChannel.setLightColor(Color.RED);
             notificationChannel.enableVibration(false);
             NotificationManager notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationManager.createNotificationChannel(notificationChannel);
 
-            Notification.Builder notification = new Notification.Builder(getApplicationContext(), channelId)
+            Notification.Builder notification = new Notification.Builder(getApplicationContext(), CHANNEL_ID)
                     .setContentTitle(NOTIFICATION_TITLE)
                     .setContentText(NOTIFICATION_CONTENT)
+                    .setStyle(new Notification.BigTextStyle().bigText(NOTIFICATION_CONTENT))
                     .setOngoing(true)
                     .setCategory(Notification.CATEGORY_SERVICE)
                     .setSmallIcon(R.mipmap.ic_launcher);
@@ -324,6 +329,7 @@ public class MainApplication extends Application implements ServiceStatusListene
             NotificationCompat.Builder notification = new NotificationCompat.Builder(getApplicationContext())
                     .setContentTitle(NOTIFICATION_TITLE)
                     .setContentText(NOTIFICATION_CONTENT)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(NOTIFICATION_CONTENT))
                     .setOngoing(true)
                     .setCategory(Notification.CATEGORY_SERVICE)
                     .setPriority(PRIORITY_MAX)
