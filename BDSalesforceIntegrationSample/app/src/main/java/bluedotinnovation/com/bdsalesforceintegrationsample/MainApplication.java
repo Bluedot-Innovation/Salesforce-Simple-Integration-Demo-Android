@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 
@@ -20,6 +21,8 @@ import com.bluedot.BDSalesforceIntegrationWrapper.ZoneEventReporter;
 import com.salesforce.marketingcloud.InitializationStatus;
 import com.salesforce.marketingcloud.MarketingCloudConfig;
 import com.salesforce.marketingcloud.MarketingCloudSdk;
+import com.salesforce.marketingcloud.notifications.NotificationCustomizationOptions;
+import com.salesforce.marketingcloud.notifications.NotificationMessage;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -126,25 +129,32 @@ public class MainApplication extends Application implements ServiceStatusListene
     private String salesforceContactKey;
     private String app_id="";   //Enter your App Id
     private String access_token=""; //Enter Access Token
-    private String gcm_id="";   //Enter GCM Id
+    private String fcm_id ="";   //Enter FCM Id
+    private String channelId = "my_custom_channel";
+    private String mID = "";   // MID from Firebase setup
 
 
     private void initCloudMobilePushSDK() {
-        MarketingCloudSdk.init(this, MarketingCloudConfig.builder()
+
+        MarketingCloudSdk.init((Context) this, MarketingCloudConfig.builder()
                 .setApplicationId(app_id)
                 .setAccessToken(access_token)
-                .setGcmSenderId(gcm_id)
-                .setNotificationSmallIconResId(R.mipmap.ic_launcher)
-                .setNotificationChannelName(CHANNEL_NAME) // Required if Android target API is >= 26
-                //Enable any other feature desired.
-                .build(), this);
-
+                .setSenderId(fcm_id)
+                .setMarketingCloudServerUrl(getString(R.string.marketing_cloud_url))
+                .setMid(mID)
+                .setNotificationCustomizationOptions(
+                        NotificationCustomizationOptions.create(R.mipmap.ic_launcher, null,
+                                new com.salesforce.marketingcloud.notifications.NotificationManager.NotificationChannelIdProvider() {
+                                    @Override @NonNull public String getNotificationChannelId(@NonNull Context context,
+                                                                                              @NonNull NotificationMessage notificationMessage) {
+                                        // Whatever custom logic required to determine which channel should be used for the message.
+                                        return CHANNEL_ID;
+                                    }
+                                })).build((Context) this), this);
     }
-
 
     @Override
     public void complete(@NonNull InitializationStatus status) {
-
 
         if (status.status() == InitializationStatus.Status.SUCCESS) {
             logInfo("Marketing Cloud SDK started");
@@ -308,11 +318,11 @@ public class MainApplication extends Application implements ServiceStatusListene
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-            NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, android.app.NotificationManager.IMPORTANCE_LOW);
             notificationChannel.enableLights(false);
             notificationChannel.setLightColor(Color.RED);
             notificationChannel.enableVibration(false);
-            NotificationManager notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
+            android.app.NotificationManager notificationManager = (android.app.NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
             notificationManager.createNotificationChannel(notificationChannel);
 
             Notification.Builder notification = new Notification.Builder(getApplicationContext(), CHANNEL_ID)
