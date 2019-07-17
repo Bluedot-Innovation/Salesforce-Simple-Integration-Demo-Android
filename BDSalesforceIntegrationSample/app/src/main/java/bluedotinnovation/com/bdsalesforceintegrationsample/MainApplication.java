@@ -15,9 +15,6 @@ import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 
-import com.bluedot.BDSalesforceIntegrationWrapper.BDZoneEvent;
-import com.bluedot.BDSalesforceIntegrationWrapper.ZoneEventReportListener;
-import com.bluedot.BDSalesforceIntegrationWrapper.ZoneEventReporter;
 import com.salesforce.marketingcloud.InitializationStatus;
 import com.salesforce.marketingcloud.MarketingCloudConfig;
 import com.salesforce.marketingcloud.MarketingCloudSdk;
@@ -26,6 +23,7 @@ import com.salesforce.marketingcloud.notifications.NotificationMessage;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -48,7 +46,7 @@ import static android.app.Notification.PRIORITY_MAX;
  * Copyright (c) 2018 Bluedot Innovation. All rights reserved.
  * MainApplication demonstrates the implementation Bluedot Point SDK and Marketing Cloud SDK.
  */
-public class MainApplication extends Application implements ServiceStatusListener, ApplicationNotificationListener, ZoneEventReportListener, MarketingCloudSdk.InitializationListener {
+public class MainApplication extends Application implements ServiceStatusListener, ApplicationNotificationListener, MarketingCloudSdk.InitializationListener {
 
     public static final String NOTIFICATION_TITLE = "Location Based Notifications";
     public static final String NOTIFICATION_CONTENT = "--PLEASE CHANGE-- This app is utilizing the location to trigger alerts " +
@@ -103,8 +101,11 @@ public class MainApplication extends Application implements ServiceStatusListene
     @Override
     public void onBlueDotPointServiceStartedSuccess() {
         mServiceManager.subscribeForApplicationNotification(this);
-        ZoneEventReporter.getInstance().setZoneEventReportListener(this);
-        logInfo("BD SDK started");
+        Map<String, String> metaData = new HashMap<>();
+        metaData.put("ContactKey", salesforceContactKey);
+        mServiceManager.setCustomEventMetaData(metaData);
+
+        logInfo("BD SDK started & Contact Key set as "+salesforceContactKey);
     }
 
     @Override
@@ -193,112 +194,24 @@ public class MainApplication extends Application implements ServiceStatusListene
     @Override
     public void onCheckIntoFence(FenceInfo fenceInfo, ZoneInfo zoneInfo, LocationInfo locationInfo, Map<String, String> map, boolean isCheckOut) {
         logInfo("Fence CheckIn");
-        try {
-            BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
-                    .setSubscriberKey(salesforceContactKey)
-                    .setApiKey(apiKey)
-                    .setZoneId(zoneInfo.getZoneId())
-                    .setZoneName(zoneInfo.getZoneName())
-                    .setFenceId(fenceInfo.getId())
-                    .setFenceName(fenceInfo.getName())
-                    .setCheckInTime(get8601formattedDate(locationInfo.getTimeStamp()))
-                    .setCheckInLatitude(locationInfo.getLatitude())
-                    .setCheckInLongitude(locationInfo.getLongitude())
-                    .setCheckInBearing(locationInfo.getBearing())
-                    .setCheckInSpeed(locationInfo.getSpeed())
-                    .setCustomData(map)
-                    .build();
-            ZoneEventReporter.getInstance().reportCheckIn(bdZoneEvent);
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private String get8601formattedDate(long timestamp) {
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.S'Z'");
-        df.setTimeZone(TimeZone.getTimeZone("UTC"));
-        if (timestamp == 0) {
-            return df.format(new Date());
-        }
-        return df.format(new Date(timestamp));
     }
 
     @Override
     public void onCheckedOutFromFence(FenceInfo fenceInfo, ZoneInfo zoneInfo, int dwellTime, Map<String, String> customData) {
         logInfo("Fence CheckOut");
-        try {
-            BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
-                    .setSubscriberKey(salesforceContactKey)
-                    .setApiKey(apiKey)
-                    .setZoneId(zoneInfo.getZoneId())
-                    .setZoneName(zoneInfo.getZoneName())
-                    .setFenceId(fenceInfo.getId())
-                    .setFenceName(fenceInfo.getName())
-                    .setCheckOutTime(get8601formattedDate(0))
-                    .setDwellTime(dwellTime)
-                    .setCustomData(customData)
-                    .build();
-            ZoneEventReporter.getInstance().reportCheckOut(bdZoneEvent);
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
     public void onCheckIntoBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, LocationInfo locationInfo, Proximity proximity, Map<String, String> map, boolean isCheckout) {
         logInfo("Beacon CheckIn");
-        try {
-            BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
-                    .setSubscriberKey(salesforceContactKey)
-                    .setApiKey(apiKey)
-                    .setZoneId(zoneInfo.getZoneId())
-                    .setZoneName(zoneInfo.getZoneName())
-                    .setBeaconId(beaconInfo.getId())
-                    .setBeaconName(beaconInfo.getName())
-                    .setCheckInTime(get8601formattedDate(locationInfo.getTimeStamp()))
-                    .setCheckInLatitude(locationInfo.getLatitude())
-                    .setCheckInLongitude(locationInfo.getLongitude())
-                    .setCheckInBearing(locationInfo.getBearing())
-                    .setCheckInSpeed(locationInfo.getSpeed())
-                    .setCustomData(map)
-                    .build();
-            ZoneEventReporter.getInstance().reportCheckIn(bdZoneEvent);
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-        }
     }
 
 
     @Override
     public void onCheckedOutFromBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, int dwellTime, Map<String, String> customData) {
         logInfo("Beacon CheckOut");
-        try {
-            BDZoneEvent bdZoneEvent = BDZoneEvent.builder()
-                    .setSubscriberKey(salesforceContactKey)
-                    .setApiKey(apiKey)
-                    .setZoneId(zoneInfo.getZoneId())
-                    .setZoneName(zoneInfo.getZoneName())
-                    .setBeaconId(beaconInfo.getId())
-                    .setBeaconName(beaconInfo.getName())
-                    .setCheckOutTime(get8601formattedDate(0))
-                    .setDwellTime(dwellTime)
-                    .setCustomData(customData)
-                    .build();
-            ZoneEventReporter.getInstance().reportCheckOut(bdZoneEvent);
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-        }
     }
 
-    @Override
-    public void onReportSuccess() {
-        logInfo("Zone Event Report Success: " + (new Date().toString()));
-    }
-
-    @Override
-    public void onReportError(Error error) {
-        logInfo("Zone Event Report Fail " + error.getMessage());
-    }
     //=============================== [ Marketing Cloud SDK and Bluedot integration end ] ===============================
 
     private void logInfo(String logInfo) {

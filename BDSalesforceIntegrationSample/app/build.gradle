@@ -22,10 +22,7 @@ android {
 dependencies {
     implementation 'com.android.support:appcompat-v7:28.0.0'
 
-    // Bluedot SDK
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
-    // Marketing Cloud SDK
+     // Marketing Cloud SDK
     implementation ('com.salesforce.marketingcloud:marketingcloudsdk:6.1.0') {
         exclude module: 'android-beacon-library' //remove to use Proximity messaging
         exclude module: 'play-services-location' //remove to use Geofence or Proximity messaging
