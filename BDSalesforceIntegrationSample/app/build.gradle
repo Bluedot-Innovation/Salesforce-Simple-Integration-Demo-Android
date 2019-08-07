@@ -31,7 +31,7 @@ dependencies {
     api 'com.google.firebase:firebase-messaging:17.4.0'
     api 'com.google.firebase:firebase-core:16.0.8'
     implementation 'com.android.support:support-v4:28.0.0'
-    implementation 'com.github.Bluedot-Innovation:PointSDK-Android:1.13.2'
+    implementation 'com.github.Bluedot-Innovation:PointSDK-Android:1.13.3'
 }
 
 apply plugin: 'com.google.gms.google-services'
