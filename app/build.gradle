@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
 
     defaultConfig {
         applicationId "bluedotinnovation.com.bdsalesforceintegrationsample"
         minSdkVersion 16
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
     }
@@ -31,7 +31,7 @@ dependencies {
     api 'com.google.firebase:firebase-messaging:17.4.0'
     api 'com.google.firebase:firebase-core:16.0.8'
     implementation 'com.android.support:support-v4:28.0.0'
-    implementation 'com.github.Bluedot-Innovation:PointSDK-Android:1.13.3'
+    implementation 'com.github.Bluedot-Innovation:PointSDK-Android:14.0.0'
 }
 
 apply plugin: 'com.google.gms.google-services'
