@@ -4,14 +4,12 @@ import android.Manifest;
 import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 
@@ -21,12 +19,9 @@ import com.salesforce.marketingcloud.MarketingCloudSdk;
 import com.salesforce.marketingcloud.notifications.NotificationCustomizationOptions;
 import com.salesforce.marketingcloud.notifications.NotificationMessage;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import au.com.bluedot.application.model.Proximity;
@@ -69,12 +64,12 @@ public class MainApplication extends Application implements ServiceStatusListene
     }
 
     public void initPointSDK() {
+        boolean locationPermissionGranted =
+                ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        boolean backgroundPermissionGranted = (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)
+                || ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED;
 
-        int checkPermissionFine = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
-        int checkPermissionCoarse = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION);
-
-
-        if (checkPermissionFine == PackageManager.PERMISSION_GRANTED && checkPermissionCoarse == PackageManager.PERMISSION_GRANTED) {
+        if (locationPermissionGranted && backgroundPermissionGranted) {
             mServiceManager = ServiceManager.getInstance(this);
 
             if (!mServiceManager.isBlueDotPointServiceRunning()) {
@@ -105,7 +100,7 @@ public class MainApplication extends Application implements ServiceStatusListene
         metaData.put("ContactKey", salesforceContactKey);
         mServiceManager.setCustomEventMetaData(metaData);
 
-        logInfo("BD SDK started & Contact Key set as "+salesforceContactKey);
+        logInfo("BD SDK started & Contact Key set as " + salesforceContactKey);
     }
 
     @Override
@@ -146,8 +141,10 @@ public class MainApplication extends Application implements ServiceStatusListene
                 .setNotificationCustomizationOptions(
                         NotificationCustomizationOptions.create(R.mipmap.ic_launcher, null,
                                 new com.salesforce.marketingcloud.notifications.NotificationManager.NotificationChannelIdProvider() {
-                                    @Override @NonNull public String getNotificationChannelId(@NonNull Context context,
-                                                                                              @NonNull NotificationMessage notificationMessage) {
+                                    @Override
+                                    @NonNull
+                                    public String getNotificationChannelId(@NonNull Context context,
+                                                                           @NonNull NotificationMessage notificationMessage) {
                                         // Whatever custom logic required to determine which channel should be used for the message.
                                         return CHANNEL_ID;
                                     }
