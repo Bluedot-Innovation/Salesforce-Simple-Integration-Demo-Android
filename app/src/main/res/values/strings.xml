@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">BDSalesforceIntegrationSample</string>
-    <string name="marketing_cloud_url">https://mcprvm7-xth3-03549041wgbrh8q.device.marketingcloudapis.com/</string>
+    <string name="marketing_cloud_url">"YOUR MARKETING CLOUD URL"/</string>
 </resources>

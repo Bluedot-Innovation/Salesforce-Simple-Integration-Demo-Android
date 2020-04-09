@@ -10,17 +10,23 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 
 dependencies {
-    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'androidx.appcompat:appcompat:1.0.0'
 
      // Marketing Cloud SDK
     implementation ('com.salesforce.marketingcloud:marketingcloudsdk:6.1.0') {
@@ -30,8 +36,8 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:16.0.0'
     api 'com.google.firebase:firebase-messaging:17.4.0'
     api 'com.google.firebase:firebase-core:16.0.8'
-    implementation 'com.android.support:support-v4:28.0.0'
-    implementation 'com.github.Bluedot-Innovation:PointSDK-Android:14.0.0'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'com.gitlab.bluedotio.android:point_sdk_android:15.0.0'
 }
 
 apply plugin: 'com.google.gms.google-services'
