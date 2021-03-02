@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
 
     defaultConfig {
         applicationId "bluedotinnovation.com.bdsalesforceintegrationsample"
-        minSdkVersion 16
-        targetSdkVersion 29
+        minSdkVersion 21
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
     }
@@ -31,17 +31,12 @@ android {
 
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.0.0'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
 
      // Marketing Cloud SDK
-    implementation ('com.salesforce.marketingcloud:marketingcloudsdk:6.1.0') {
-        exclude module: 'android-beacon-library' //remove to use Proximity messaging
-        exclude module: 'play-services-location' //remove to use Geofence or Proximity messaging
-    }
-    implementation 'com.google.android.gms:play-services-location:16.0.0'
-    api 'com.google.firebase:firebase-messaging:17.4.0'
-    api 'com.google.firebase:firebase-core:16.0.8'
-    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'com.salesforce.marketingcloud:marketingcloudsdk:7.3.0'
+    implementation 'com.google.android.gms:play-services-location:18.0.0'
+    api 'com.google.firebase:firebase-core:18.0.2'
     implementation 'com.gitlab.bluedotio.android:point_sdk_android:15.3.1'
 }
 
