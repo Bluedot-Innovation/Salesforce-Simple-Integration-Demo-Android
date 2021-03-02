@@ -18,10 +18,15 @@ android {
         }
     }
 
+    lintOptions {
+        abortOnError false
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
 }
 
 
@@ -37,7 +42,7 @@ dependencies {
     api 'com.google.firebase:firebase-messaging:17.4.0'
     api 'com.google.firebase:firebase-core:16.0.8'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'com.gitlab.bluedotio.android:point_sdk_android:15.0.0'
+    implementation 'com.gitlab.bluedotio.android:point_sdk_android:15.3.1'
 }
 
 apply plugin: 'com.google.gms.google-services'

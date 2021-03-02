@@ -9,31 +9,23 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
-
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
-
+import au.com.bluedot.point.net.engine.BDError;
+import au.com.bluedot.point.net.engine.GeoTriggeringService;
+import au.com.bluedot.point.net.engine.GeoTriggeringStatusListener;
+import au.com.bluedot.point.net.engine.InitializationResultListener;
+import au.com.bluedot.point.net.engine.ServiceManager;
 import com.salesforce.marketingcloud.InitializationStatus;
 import com.salesforce.marketingcloud.MarketingCloudConfig;
 import com.salesforce.marketingcloud.MarketingCloudSdk;
 import com.salesforce.marketingcloud.notifications.NotificationCustomizationOptions;
 import com.salesforce.marketingcloud.notifications.NotificationMessage;
-
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import au.com.bluedot.application.model.Proximity;
-import au.com.bluedot.point.ApplicationNotificationListener;
-import au.com.bluedot.point.ServiceStatusListener;
-import au.com.bluedot.point.net.engine.BDError;
-import au.com.bluedot.point.net.engine.BeaconInfo;
-import au.com.bluedot.point.net.engine.FenceInfo;
-import au.com.bluedot.point.net.engine.LocationInfo;
-import au.com.bluedot.point.net.engine.ServiceManager;
-import au.com.bluedot.point.net.engine.ZoneInfo;
+import org.jetbrains.annotations.Nullable;
 
 import static android.app.Notification.PRIORITY_MAX;
 
@@ -42,15 +34,15 @@ import static android.app.Notification.PRIORITY_MAX;
  * Copyright (c) 2018 Bluedot Innovation. All rights reserved.
  * MainApplication demonstrates the implementation Bluedot Point SDK and Marketing Cloud SDK.
  */
-public class MainApplication extends Application implements ServiceStatusListener, ApplicationNotificationListener, MarketingCloudSdk.InitializationListener {
+public class MainApplication extends Application implements MarketingCloudSdk.InitializationListener {
 
     public static final String NOTIFICATION_TITLE = "Location Based Notifications";
     public static final String NOTIFICATION_CONTENT = "--PLEASE CHANGE-- This app is utilizing the location to trigger alerts " +
             "in both background and foreground modes when you visit your favourite locations";
     //=============================== [ Bluedot SDK ] ===============================
     private ServiceManager mServiceManager;
-    private String apiKey = ""; //API key for the App 
-    private boolean restartMode = true;
+    private String projectId = ""; //ProjectId of Bluedot App from Canvas
+    //  
     final String CHANNEL_ID = "BluedotSampleChannelId";     //Please replace with yout Channel Id
     final String CHANNEL_NAME = "BluedotSampleChannelName"; //Please replace with your Channel Name
 
@@ -67,19 +59,39 @@ public class MainApplication extends Application implements ServiceStatusListene
     public void initPointSDK() {
         boolean locationPermissionGranted =
                 ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        boolean backgroundPermissionGranted = (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)
-                || ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED;
 
-        if (locationPermissionGranted && backgroundPermissionGranted) {
+        if (locationPermissionGranted) {
             mServiceManager = ServiceManager.getInstance(this);
 
-            if (!mServiceManager.isBlueDotPointServiceRunning()) {
-                // Setting Notification for foreground service, required for Android Oreo and above.
-                // Setting targetAllAPIs to TRUE will display foreground notification for Android versions lower than Oreo
-                mServiceManager.setForegroundServiceNotification(createNotification(), false);
-                mServiceManager.sendAuthenticationRequest(apiKey, this, restartMode);
+            if (!mServiceManager.isBluedotServiceInitialized()) {
 
+                mServiceManager.initialize(projectId, new InitializationResultListener() {
+                    @Override public void onInitializationFinished(@Nullable BDError bdError) {
+                        if (bdError != null) {
+                           logInfo("BD SDK Initialize Error "+bdError.getReason());
+                           return;
+                        }
 
+                        logInfo("BD SDK initialized");
+
+                        new GeoTriggeringService.GeoTriggerBuilder().notification(createNotification()).start(
+                                getApplicationContext(), new GeoTriggeringStatusListener() {
+                                    @Override public void onGeoTriggeringResult(@Nullable BDError bdError) {
+
+                                        if (bdError != null) {
+                                            logInfo("BD Geo-Trigger Error "+bdError.getReason());
+                                            return;
+                                        }
+
+                                        Map<String, String> metaData = new HashMap<>();
+                                        metaData.put("ContactKey", salesforceContactKey);
+                                        mServiceManager.setCustomEventMetaData(metaData);
+
+                                        logInfo("BD Geo-triggering started & Contact Key set as " + salesforceContactKey);
+                                    }
+                                });
+                    }
+                });
             }
         } else {
             requestPermissions();
@@ -94,42 +106,16 @@ public class MainApplication extends Application implements ServiceStatusListene
         startActivity(intent);
     }
 
-    @Override
-    public void onBlueDotPointServiceStartedSuccess() {
-        mServiceManager.subscribeForApplicationNotification(this);
-        Map<String, String> metaData = new HashMap<>();
-        metaData.put("ContactKey", salesforceContactKey);
-        mServiceManager.setCustomEventMetaData(metaData);
 
-        logInfo("BD SDK started & Contact Key set as " + salesforceContactKey);
-    }
-
-    @Override
-    public void onBlueDotPointServiceStop() {
-        mServiceManager.unsubscribeForApplicationNotification(this);
-
-    }
-
-    @Override
-    public void onBlueDotPointServiceError(BDError bdError) {
-        logInfo("BD SDK error: " + bdError.getReason());
-    }
-
-    @Override
-    public void onRuleUpdate(List<ZoneInfo> list) {
-
-    }
     //=============================== [ Bluedot SDK end ] ===============================
 
 
     //=============================== [ Marketing Cloud SDK ]=================================
     private String salesforceContactKey;
-    private String app_id="";   //Enter your App Id
+    private String app_id="";//Enter your App Id
     private String access_token=""; //Enter Access Token
     private String fcm_id ="";   //Enter FCM Id
-    private String channelId = "my_custom_channel";
     private String mID = "";   // MID from Firebase setup
-
 
     private void initCloudMobilePushSDK() {
 
@@ -188,31 +174,7 @@ public class MainApplication extends Application implements ServiceStatusListene
 
     //=============================== [ Marketing Cloud SDK end]=================================
 
-    //=============================== [ Marketing Cloud SDK and Bluedot integration ] ===============================
-    @Override
-    public void onCheckIntoFence(FenceInfo fenceInfo, ZoneInfo zoneInfo, LocationInfo locationInfo, Map<String, String> map, boolean isCheckOut) {
-        logInfo("Fence CheckIn");
-    }
-
-    @Override
-    public void onCheckedOutFromFence(FenceInfo fenceInfo, ZoneInfo zoneInfo, int dwellTime, Map<String, String> customData) {
-        logInfo("Fence CheckOut");
-    }
-
-    @Override
-    public void onCheckIntoBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, LocationInfo locationInfo, Proximity proximity, Map<String, String> map, boolean isCheckout) {
-        logInfo("Beacon CheckIn");
-    }
-
-
-    @Override
-    public void onCheckedOutFromBeacon(BeaconInfo beaconInfo, ZoneInfo zoneInfo, int dwellTime, Map<String, String> customData) {
-        logInfo("Beacon CheckOut");
-    }
-
-    //=============================== [ Marketing Cloud SDK and Bluedot integration end ] ===============================
-
-    private void logInfo(String logInfo) {
+    public void logInfo(String logInfo) {
         Intent intent = new Intent();
         intent.setAction(MainActivity.TEXT_LOG_BROADCAST);
         intent.putExtra("logInfo", logInfo);
