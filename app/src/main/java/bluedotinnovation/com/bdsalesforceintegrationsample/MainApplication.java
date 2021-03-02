@@ -37,10 +37,11 @@ public class MainApplication extends Application
     public static final String NOTIFICATION_CONTENT =
             "--PLEASE CHANGE-- This app is utilizing the location to trigger alerts " +
                     "in both background and foreground modes when you visit your favourite locations";
+
     //=============================== [ Bluedot SDK ] ===============================
     private ServiceManager mServiceManager;
     private final String projectId = "<YOUR_PROJECT_ID>"; //ProjectId of Bluedot App from Canvas
-    //  
+
     final String CHANNEL_ID = "BluedotSampleChannelId";     //Please replace with yout Channel Id
     final String CHANNEL_NAME = "BluedotSampleChannelName"; //Please replace with your Channel Name
 
