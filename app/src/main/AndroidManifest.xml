@@ -18,6 +18,26 @@
 
         <activity android:name=".RequestPermissionActivity" />
 
+        <receiver
+            android:name="bluedotinnovation.com.bdsalesforceintegrationsample.BluedotErrorReceiver"
+            android:enabled="true"
+            android:exported="false"
+            >
+            <intent-filter>
+                <action android:name="io.bluedot.point.SERVICE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="bluedotinnovation.com.bdsalesforceintegrationsample.AppGeoTriggerReceiver"
+            android:enabled="true"
+            android:exported="false"
+            >
+            <intent-filter>
+                <action android:name="io.bluedot.point.GEOTRIGGER" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
